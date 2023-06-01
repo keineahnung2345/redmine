@@ -96,5 +96,8 @@ module RedmineApp
     if File.exist?(File.join(File.dirname(__FILE__), 'additional_environment.rb'))
       instance_eval File.read(File.join(File.dirname(__FILE__), 'additional_environment.rb'))
     end
+    #config.middleware.use I18n::Middleware
+    #config.enable_dependency_loading = true
+    #config.eager_load_paths << Rails.root.join('lib')
   end
 end
