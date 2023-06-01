@@ -69,10 +69,10 @@ class WikiPage < ActiveRecord::Base
   DEFAULT_PROTECTED_PAGES = %w(sidebar)
 
   safe_attributes 'parent_id', 'parent_title', 'title', 'redirect_existing_links', 'wiki_id',
-                  :if => lambda {|page, user| page.new_record? || user.allowed_to?(:rename_wiki_pages, page.project)}
+    :if => lambda {|page, user| page.new_record? || user.allowed_to?(:rename_wiki_pages, page.project, global: page.wiki.global?)}
 
   safe_attributes 'is_start_page',
-                  :if => lambda {|page, user| user.allowed_to?(:manage_wiki, page.project)}
+    :if => lambda {|page, user| user.allowed_to?(:manage_wiki, page.project, global: page.wiki.global?)}
 
   safe_attributes 'deleted_attachment_ids',
                   :if => lambda {|page, user| page.attachments_deletable?(user)}
@@ -85,7 +85,13 @@ class WikiPage < ActiveRecord::Base
   end
 
   def visible?(user=User.current)
-    !user.nil? && user.allowed_to?(:view_wiki_pages, project)
+    !user.nil? &&
+      user.allowed_to?(:view_wiki_pages, self.project, global: self.wiki.global?)
+  end
+
+  def attachments_visible?(user=User.current)
+    (respond_to?(:visible?) ? visible?(user) : true) &&
+      user.allowed_to?(self.class.attachable_options[:view_permission], self.project, global: self.wiki.global?)
   end
 
   def title=(value)
@@ -206,7 +212,7 @@ class WikiPage < ActiveRecord::Base
 
   # Returns true if usr is allowed to edit the page, otherwise false
   def editable_by?(usr)
-    !protected? || usr.allowed_to?(:protect_wiki_pages, wiki.project)
+    !protected? || self.wiki.allowed_to_permission?(:protect_wiki_pages, usr)
   end
 
   def attachments_deletable?(usr=User.current)

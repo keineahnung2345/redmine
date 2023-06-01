@@ -223,7 +223,7 @@ module ApplicationHelper
       lambda do |wiki_page|
         link_to(
           wiki_page.pretty_title,
-          project_wiki_page_path(wiki_page.project, wiki_page.title)
+          url_for({:controller => 'wiki', :action => 'show', project_id: wiki_page.project, id: wiki_page.title})
         )
       end
   }
@@ -309,11 +309,6 @@ module ApplicationHelper
     else
       html ? h(object) : object.to_s
     end
-  end
-
-  def wiki_page_path(page, options={})
-    url_for({:controller => 'wiki', :action => 'show', :project_id => page.project,
-             :id => page.title}.merge(options))
   end
 
   def thumbnail_tag(attachment)
@@ -979,13 +974,14 @@ module ApplicationHelper
           next link_to(title.present? ? title.html_safe : h(page), url, :class => 'wiki-page')
         end
 
-        if page =~ /^([^\:]+)\:(.*)$/
+        if page =~ /^(.*)\:(.*)$/
           identifier, page = $1, $2
           link_project = Project.find_by_identifier(identifier) || Project.find_by_name(identifier)
           title ||= identifier if page.blank?
         end
-
-        if link_project && link_project.wiki && User.current.allowed_to?(:view_wiki_pages, link_project)
+        wiki = Wiki.find_by(:project => link_project)
+        if wiki && wiki.allowed_to_permission?(:view_wiki_pages) &&
+          (link_project || (wiki.global? && link_project.nil?))
           # extract anchor
           anchor = nil
           if page =~ /^(.+?)\#(.+)$/
@@ -993,7 +989,7 @@ module ApplicationHelper
           end
           anchor = sanitize_anchor_name(anchor) if anchor.present?
           # check if page exists
-          wiki_page = link_project.wiki.find_page(page)
+          wiki_page = wiki.find_page(page)
           url =
             if anchor.present? && wiki_page.present? &&
                  (obj.is_a?(WikiContent) || obj.is_a?(WikiContentVersion)) &&

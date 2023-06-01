@@ -196,6 +196,22 @@ module Redmine
 
             if projects
               scope = scope.where("#{searchable_options[:project_key]} IN (?)", projects.map(&:id))
+            elsif scope.table_name == "wiki_pages" && options[:params][:wiki_pages] == "1"
+              # including global wiki
+              scope_global_wikis = WikiPage.joins(:wiki).where("wikis.project_id is null")
+              # Method 1:
+              # ArgumentError (Relation passed to #or must be structurally compatible. Incompatible values: [:joins])
+              #scope = scope.or(scope_global_wikis)
+              # Method 2:
+              # TypeError (Cannot visit WikiPage::ActiveRecord_Relation)
+              #wiki_page_table = WikiPage.arel_table
+              #combined = Arel::Nodes::UnionAll.new(scope, scope_global_wikis)
+              #scope = WikiPage.from(Arel::Nodes::As.new(combined, wiki_page_table))
+              # Method 3:
+              # https://stackoverflow.com/questions/57491185/obtain-union-all-result-in-activerecord
+              # https://stackoverflow.com/questions/17331862/converting-an-array-of-objects-to-activerecordrelation
+              scope_array = WikiPage.find_by_sql("#{scope.to_sql} UNION #{scope_global_wikis.to_sql}")
+              scope = WikiPage.where(id: scope_array.map(&:id)).joins(:content) #.joins({:wiki => :project})
             end
             scope
           end

@@ -33,7 +33,7 @@
 # TODO: still being worked on
 class WikiController < ApplicationController
   default_search_scope :wiki_pages
-  before_action :find_wiki, :authorize
+  before_action :find_wiki, :authorize_global
   before_action :find_existing_or_new_page, :only => [:show, :edit]
   before_action :find_existing_page, :only => [:rename, :protect, :history, :diff, :annotate, :add_attachment, :destroy, :destroy_version]
   before_action :find_attachments, :only => [:preview]
@@ -41,11 +41,13 @@ class WikiController < ApplicationController
 
   helper :attachments
   include AttachmentsHelper
+  include WikiHelper
   helper :watchers
   include Redmine::Export::PDF
 
   # List of pages, sorted alphabetically and by parent (hierarchy)
   def index
+    authorize if params[:project_id]
     load_pages_for_index
 
     respond_to do |format|
@@ -64,7 +66,7 @@ class WikiController < ApplicationController
 
   def new
     @page = WikiPage.new(:wiki => @wiki, :title => params[:title])
-    unless User.current.allowed_to?(:edit_wiki_pages, @project)
+    unless @wiki.allowed_to_permission?(:view_wiki_edits)
       render_403
       return
     end
@@ -72,7 +74,7 @@ class WikiController < ApplicationController
       @page.title = '' unless editable?
       @page.validate
       if @page.errors[:title].blank?
-        path = project_wiki_page_path(@project, @page.title, :parent => params[:parent])
+        path = wiki_page_action_path('show', @page, {:parent => params[:parent]})
         respond_to do |format|
           format.html {redirect_to path}
           format.js   {render :js => "window.location = #{path.to_json}"}
@@ -83,13 +85,13 @@ class WikiController < ApplicationController
 
   # display a page (in editing mode if it doesn't exist)
   def show
-    if params[:version] && !User.current.allowed_to?(:view_wiki_edits, @project)
+    if params[:version] && !@wiki.allowed_to_permission?(:view_wiki_edits)
       deny_access
       return
     end
     @content = @page.content_for_version(params[:version])
     if @content.nil?
-      if params[:version].blank? && User.current.allowed_to?(:edit_wiki_pages, @project) && editable? && !api_request?
+      if params[:version].blank? && @wiki.allowed_to_permission?(:view_wiki_edits) && editable? && !api_request?
         edit
         render :action => 'edit'
       else
@@ -186,11 +188,11 @@ class WikiController < ApplicationController
       respond_to do |format|
         format.html do
           anchor = @section ? "section-#{@section}" : nil
-          redirect_to project_wiki_page_path(@project, @page.title, :anchor => anchor)
+          redirect_to wiki_page_action_path('show', @page, {:anchor => anchor})
         end
         format.api do
           if was_new_page
-            render :action => 'show', :status => :created, :location => project_wiki_page_path(@project, @page.title)
+            render :action => 'show', :status => :created, :location => wiki_page_action_path('show', @page)
           else
             render_api_ok
           end
@@ -224,13 +226,13 @@ class WikiController < ApplicationController
     @page.safe_attributes = params[:wiki_page]
     if request.post? && @page.save
       flash[:notice] = l(:notice_successful_update)
-      redirect_to project_wiki_page_path(@page.project, @page.title)
+      redirect_to wiki_page_action_path('show', @page)
     end
   end
 
   def protect
     @page.update_attribute :protected, params[:protected]
-    redirect_to project_wiki_page_path(@project, @page.title)
+    redirect_to wiki_page_action_path('show', @page)
   end
 
   # show page history
@@ -289,7 +291,11 @@ class WikiController < ApplicationController
     respond_to do |format|
       format.html do
         flash[:notice] = l(:notice_successful_delete)
-        redirect_to project_wiki_index_path(@project)
+        if @project
+          redirect_to project_wiki_index_path(@project)
+        else
+          redirect_to wiki_index_path
+        end
       end
       format.api {render_api_ok}
     end
@@ -300,7 +306,7 @@ class WikiController < ApplicationController
 
     if content = @page.content.versions.find_by_version(params[:version])
       content.destroy
-      redirect_to_referer_or history_project_wiki_page_path(@project, @page.title)
+      redirect_to_referer_or wiki_page_action_path('history', @page)
     else
       render_404
     end
@@ -346,11 +352,20 @@ class WikiController < ApplicationController
   private
 
   def find_wiki
-    @project = Project.find(params[:project_id])
-    @wiki = @project.wiki
+    if params[:project_id]
+      @project = Project.find(params[:project_id])
+      @wiki = @project.wiki
+    else
+      @wiki = Wiki.find_by(:project_id => nil)
+      Wiki.create(:project => nil, :start_page => 'Wiki') if @wiki.nil?
+    end
     render_404 unless @wiki
   rescue ActiveRecord::RecordNotFound
     render_404
+  end
+
+  def global_wiki?
+    @wiki.project.nil?
   end
 
   # Finds the requested page or a new page if it doesn't exist

@@ -58,7 +58,7 @@ module Redmine
 
         def attachments_deletable?(user=User.current)
           (respond_to?(:visible?) ? visible?(user) : true) &&
-            user.allowed_to?(self.class.attachable_options[:delete_permission], self.project)
+            user.allowed_to?(self.class.attachable_options[:delete_permission], self.project, :global => ((self.is_a? WikiPage) ? self.wiki.global?: false))
         end
 
         def saved_attachments

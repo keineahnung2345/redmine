@@ -207,7 +207,7 @@ module Redmine
         else
           raise t(:error_childpages_macro_no_argument)
         end
-        raise t(:error_page_not_found) if page.nil? || !User.current.allowed_to?(:view_wiki_pages, page.wiki.project)
+        raise t(:error_page_not_found) if page.nil? || !User.current.allowed_to?(:view_wiki_pages, page.wiki.project, global: page.wiki.global?)
 
         pages = page.self_and_descendants(options[:depth]).group_by(&:parent_id)
         render_page_hierarchy(pages, options[:parent] ? page.parent_id : page.id)
@@ -218,7 +218,7 @@ module Redmine
              "{{include(projectname:Foo)}} -- to include a page of a specific project wiki"
       macro :include do |obj, args|
         page = Wiki.find_page(args.first.to_s, :project => @project)
-        raise t(:error_page_not_found) if page.nil? || !User.current.allowed_to?(:view_wiki_pages, page.wiki.project)
+        raise t(:error_page_not_found) if page.nil? || !User.current.allowed_to?(:view_wiki_pages, page.wiki.project, global: page.wiki.global?)
 
         @included_wiki_pages ||= []
         raise t(:error_circular_inclusion) if @included_wiki_pages.include?(page.id)

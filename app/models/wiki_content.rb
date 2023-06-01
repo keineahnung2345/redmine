@@ -56,7 +56,7 @@ class WikiContent < ActiveRecord::Base
   end
 
   def notified_users
-    project.notified_users.reject {|user| !visible?(user)}
+    self.global? ? [] : project.notified_users.reject {|user| !visible?(user)}
   end
 
   # Returns the mail addresses of users that should be notified
@@ -80,6 +80,10 @@ class WikiContent < ActiveRecord::Base
         :updated_on => version.updated_on
       ) && reload
     end
+  end
+
+  def global?
+    self.project.nil?
   end
 
   private

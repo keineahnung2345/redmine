@@ -5,8 +5,8 @@
 
 <%= wiki_page_breadcrumb(@page) %>
 
-<%= title [@page.pretty_title, project_wiki_page_path(@page.project, @page.title, :version => nil)],
-      [l(:label_history), history_project_wiki_page_path(@page.project, @page.title)],
+<%= title [@page.pretty_title, wiki_page_action_path('show', @page, {:version => nil})],
+      [l(:label_history), wiki_page_action_path('history', @page)],
       "#{l(:label_revision)} #{@diff.content_to.version}" %>
 
 <p>

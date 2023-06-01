@@ -207,6 +207,30 @@ Rails.application.routes.draw do
     get 'wiki/:id/:version/annotate', :to => 'wiki#annotate'
     get 'wiki/:id/:version/diff', :to => 'wiki#diff'
   end
+  match 'wiki/index', :controller => 'wiki', :action => 'index', :via => :get
+  resources :wiki, :except => [:index, :create, :show], :as => 'wiki_page' do
+    member do
+      get 'wiki', :as => 'show_wiki_page'
+      get 'rename'
+      post 'rename'
+      get 'history'
+      get 'diff'
+      match 'preview', :via => [:post, :put, :patch]
+      post 'protect'
+      post 'add_attachment'
+    end
+    collection do
+      get 'export'
+      get 'date_index'
+      post 'new'
+    end
+  end
+  match 'wiki', :controller => 'wiki', :action => 'show', :via => :get
+  get 'wiki/:id/:version', :to => 'wiki#show', :constraints => {:version => /\d+/}
+  delete 'wiki/:id/:version', :to => 'wiki#destroy_version'
+  get 'wiki/:id/:version/annotate', :to => 'wiki#annotate'
+  get 'wiki/:id/:version/diff', :to => 'wiki#diff'
+  match 'wiki/:id/destroy', :to => 'wikis#destroy', :via => [:get, :post]
 
   resources :issues do
     member do

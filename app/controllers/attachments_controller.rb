@@ -176,8 +176,10 @@ class AttachmentsController < ApplicationController
       @attachment.destroy
     end
 
+    container = @attachment.try(:container) || @container
     respond_to do |format|
-      format.html {redirect_to_referer_or project_path(@project)}
+      # redirect to project or global wiki page
+      format.html {redirect_to_referer_or @project ? project_path(@project) : wiki_index_path(container)}
       format.js
       format.api {render_api_ok}
     end

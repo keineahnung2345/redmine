@@ -63,13 +63,21 @@ module WikiHelper
   def wiki_page_edit_cancel_path(page)
     if page.new_record?
       if parent = page.parent
-        project_wiki_page_path(parent.project, parent.title)
+        wiki_page_action_path('show', parent)
       else
-        project_wiki_index_path(page.project)
+        if page.project
+          project_wiki_index_path(page.project)
+        else
+          wiki_index_path
+        end
       end
     else
-      project_wiki_page_path(page.project, page.title)
+      wiki_page_action_path('show', page)
     end
+  end
+
+  def wiki_page_action_path(action_name, page=nil, options={})
+    url_for({:controller => 'wiki', :action => action_name, :project_id => (page.wiki.project if page), :id => (page.title if page)}.merge(options))
   end
 
   def wiki_content_update_info(content)

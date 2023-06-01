@@ -34,7 +34,7 @@ class Wiki < ActiveRecord::Base
   safe_attributes 'start_page'
 
   def visible?(user=User.current)
-    !user.nil? && user.allowed_to?(:view_wiki_pages, project)
+    !user.nil? && user.allowed_to?(:view_wiki_pages, project, global: self.global?)
   end
 
   # Returns the wiki page that acts as the sidebar content
@@ -85,12 +85,13 @@ class Wiki < ActiveRecord::Base
   #   Wiki.find_page("foo:bar")
   def self.find_page(title, options = {})
     project = options[:project]
-    if title.to_s =~ %r{^([^\:]+)\:(.*)$}
+    if title.to_s =~ %r{^(.*):(.*)$}
       project_identifier, title = $1, $2
       project = Project.find_by_identifier(project_identifier) || Project.find_by_name(project_identifier)
     end
-    if project && project.wiki
-      page = project.wiki.find_page(title)
+    wiki = project_identifier.present? ? (project && project.wiki) : Wiki.find_by(project: nil)
+    if wiki
+      page = wiki.find_page(title)
       if page && page.content
         page
       end
@@ -104,5 +105,17 @@ class Wiki < ActiveRecord::Base
     # upcase the first letter
     title = (title.slice(0..0).upcase + (title.slice(1..-1) || '')) if title
     title
+  end
+
+  def global?
+    self.project.nil?
+  end
+
+  def allowed_to_permission?(permission, user=User.current)
+    user.allowed_to?(permission, self.project, :global => self.global?)
+  end
+
+  def allowed_to_action?(action)
+    User.current.allowed_to?({:controller => 'wiki', :action => action}, self.project, :global => self.global?)
   end
 end

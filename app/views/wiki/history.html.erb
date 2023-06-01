@@ -1,6 +1,6 @@
 <%= wiki_page_breadcrumb(@page) %>
 
-<%= title [@page.pretty_title, project_wiki_page_path(@page.project, @page.title, :version => nil)], l(:label_history) %>
+<%= title [@page.pretty_title, wiki_page_action_path('show', @page, {:version => nil})], l(:label_history) %>
 
 <%= form_tag({:controller => 'wiki', :action => 'diff',
               :project_id => @page.project, :id => @page.title},
@@ -31,7 +31,7 @@
     <td class="comments"><%= ver.comments %></td>
     <td class="buttons">
       <%= link_to l(:button_annotate), :action => 'annotate', :id => @page.title, :version => ver.version %>
-      <%= delete_link wiki_page_path(@page, :version => ver.version) if User.current.allowed_to?(:delete_wiki_pages, @page.project) && @version_count > 1 %>
+      <%= delete_link wiki_page_action_path('show', @page, {:version => ver.version}) if @page.wiki.allowed_to_permission?(:delete_wiki_pages) && @version_count > 1 %>
     </td>
 </tr>
 <% line_num += 1 %>

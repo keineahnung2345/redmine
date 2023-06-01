@@ -236,6 +236,15 @@ module Redmine
             end,
           :caption => :label_news_plural
         )
+        menu.push(
+          :wiki,
+          {:controller => 'wiki', :action => 'show'},
+          :if =>
+            Proc.new do
+              User.current.allowed_to?(:view_wiki_pages, nil, :global => true)
+            end,
+          :caption => :label_wiki
+        )
       end
 
       MenuManager.map :admin_menu do |menu|

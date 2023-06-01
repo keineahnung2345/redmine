@@ -2,27 +2,27 @@
 
 <% if @editable %>
 <% if @content.current_version? %>
-  <%= link_to_if_authorized(l(:button_edit), {:action => 'edit', :id => @page.title}, :class => 'icon icon-edit', :accesskey => accesskey(:edit)) %>
+  <%= link_to(l(:button_edit), {:action => 'edit', :id => @page.title}, :class => 'icon icon-edit', :accesskey => accesskey(:edit)) if @page.wiki.allowed_to_action?('edit') %>
   <%= watcher_link(@page, User.current) %>
 <% end %>
 <% end %>
 
   <%= actions_dropdown do %>
-    <%= link_to_if_authorized(l(:label_history), {:action => 'history', :id => @page.title}, :class => 'icon icon-history') %>
+    <%= link_to(l(:label_history), {:action => 'history', :id => @page.title}, :class => 'icon icon-history') if @page.wiki.allowed_to_action?('history') %>
 
     <% if @editable %>
     <% if @content.current_version? %>
-      <%= link_to_if_authorized(l(:button_lock), {:action => 'protect', :id => @page.title, :protected => 1}, :method => :post, :class => 'icon icon-lock') if !@page.protected? %>
-      <%= link_to_if_authorized(l(:button_unlock), {:action => 'protect', :id => @page.title, :protected => 0}, :method => :post, :class => 'icon icon-unlock') if @page.protected? %>
-      <%= link_to_if_authorized(l(:button_rename), {:action => 'rename', :id => @page.title}, :class => 'icon icon-move') %>
-      <%= link_to_if_authorized(l(:button_delete), {:action => 'destroy', :id => @page.title}, :method => :delete, :data => {:confirm => l(:text_are_you_sure)}, :class => 'icon icon-del') %>
+      <%= link_to(l(:button_lock), {:action => 'protect', :id => @page.title, :protected => 1}, :method => :post, :class => 'icon icon-lock') if !@page.protected? && @page.wiki.allowed_to_action?('protect') %>
+      <%= link_to(l(:button_unlock), {:action => 'protect', :id => @page.title, :protected => 0}, :method => :post, :class => 'icon icon-unlock') if @page.protected? && @page.wiki.allowed_to_action?('protect') %>
+      <%= link_to(l(:button_rename), {:action => 'rename', :id => @page.title}, :class => 'icon icon-move') if @page.wiki.allowed_to_action?('rename') %>
+      <%= link_to(l(:button_delete), {:action => 'destroy', :id => @page.title}, :method => :delete, :data => {:confirm => l(:text_are_you_sure)}, :class => 'icon icon-del') if @page.wiki.allowed_to_action?('destroy') %>
     <% else %>
-      <%= link_to_if_authorized(l(:button_rollback), {:action => 'edit', :id => @page.title, :version => @content.version }, :class => 'icon icon-cancel') %>
+      <%= link_to(l(:button_rollback), {:action => 'edit', :id => @page.title, :version => @content.version }, :class => 'icon icon-cancel') if @page.wiki.allowed_to_action?('edit') %>
     <% end %>
     <% end %>
 
-    <% if User.current.allowed_to?(:edit_wiki_pages, @project) %>
-      <%= link_to l(:label_wiki_page_new), new_project_wiki_page_path(@project, :parent => @page.title), :remote => true, :class => 'icon icon-add' %>
+    <% if @page.wiki.allowed_to_permission?(:edit_wiki_pages) %>
+      <%= link_to l(:label_wiki_page_new), wiki_page_action_path('new', @page, {:parent => @page.title}), :remote => true, :class => 'icon icon-add' %>
     <% end %>
   <% end %>
 </div>
@@ -30,8 +30,8 @@
 <%= wiki_page_breadcrumb(@page) %>
 
 <% unless @content.current_version? %>
-  <%= title [@page.pretty_title, project_wiki_page_path(@page.project, @page.title, :version => nil)],
-        [l(:label_history), history_project_wiki_page_path(@page.project, @page.title)],
+  <%= title [@page.pretty_title, wiki_page_action_path('show', @page, {:version => nil})],
+        [l(:label_history), wiki_page_action_path('history', @page)],
         "#{l(:label_revision)} #{@content.version}" %>
 
     <p>
