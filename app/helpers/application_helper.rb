@@ -990,6 +990,11 @@ module ApplicationHelper
           anchor = sanitize_anchor_name(anchor) if anchor.present?
           # check if page exists
           wiki_page = wiki.find_page(page)
+          if wiki_page.nil?
+            # global wiki
+            link_project = nil
+            wiki_page = Wiki.find_page(page)
+          end
           url =
             if anchor.present? && wiki_page.present? &&
                  (obj.is_a?(WikiContent) || obj.is_a?(WikiContentVersion)) &&
