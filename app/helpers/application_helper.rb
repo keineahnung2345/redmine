@@ -980,8 +980,9 @@ module ApplicationHelper
           title ||= identifier if page.blank?
         end
         wiki = Wiki.find_by(:project => link_project)
-        if wiki && wiki.allowed_to_permission?(:view_wiki_pages) &&
-          (link_project || (wiki.global? && link_project.nil?))
+        #if wiki && wiki.allowed_to_permission?(:view_wiki_pages) &&
+        #  (link_project || (wiki.global? && link_project.nil?))
+        if true
           # extract anchor
           anchor = nil
           if page =~ /^(.+?)\#(.+)$/
@@ -989,7 +990,9 @@ module ApplicationHelper
           end
           anchor = sanitize_anchor_name(anchor) if anchor.present?
           # check if page exists
-          wiki_page = wiki.find_page(page)
+          unless wiki.nil?
+            wiki_page = wiki.find_page(page)
+          end
           if wiki_page.nil?
             # global wiki
             link_project = nil
