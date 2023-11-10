@@ -153,15 +153,18 @@ class RepositoriesController < ApplicationController
     (show; return) if @entry.is_dir?
 
     if is_raw
-      # Force the download
-      #send_opt = {:filename => filename_for_content_disposition(@path.split('/').last)}
-      #send_type = Redmine::MimeType.of(@path)
-      #send_opt[:type] = send_type.to_s if send_type
-      #send_opt[:disposition] = disposition(@path)
-      #send_data @repository.cat(@path, @rev), send_opt
-      full_path = File.expand_path(File.join(@repository.scm.url, @path))
-      (show_error_not_found; return) unless File.exists?(full_path)
-      send_file full_path, :filename => @path.split('/').last, :stream => true
+      if @repository.scm_name == "Git"
+        # Force the download
+        send_opt = {:filename => filename_for_content_disposition(@path.split('/').last)}
+        send_type = Redmine::MimeType.of(@path)
+        send_opt[:type] = send_type.to_s if send_type
+        send_opt[:disposition] = disposition(@path)
+        send_data @repository.cat(@path, @rev), send_opt
+      elsif @repository.scm_name == "Filesystem"
+        full_path = File.expand_path(File.join(@repository.scm.url, @path))
+        (show_error_not_found; return) unless File.exists?(full_path)
+        send_file full_path, :filename => @path.split('/').last, :stream => true
+      end
     else
       # set up pagination from entry to entry
       parent_path = @path.split('/')[0...-1].join('/')
