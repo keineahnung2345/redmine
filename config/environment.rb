@@ -18,5 +18,5 @@ Rails.application.initialize!
 ActionController::Base.relative_url_root = RedmineApp::Application.routes.default_scope
 Redmine::Utils::relative_url_root = RedmineApp::Application.routes.default_scope
 
-ENV['RAILS_RELATIVE_URL_ROOT'] = "/mars"
+ENV['RAILS_RELATIVE_URL_ROOT'] = "/"
 Redmine::Utils::relative_url_root = ENV['RAILS_RELATIVE_URL_ROOT']
