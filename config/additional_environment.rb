@@ -7,5 +7,5 @@
 #   config.log_level = :debug
 #   ...
 #
-config.relative_url_root = '/mars'
+#config.relative_url_root = '/mars'
 config.middleware.use I18n::Middleware
